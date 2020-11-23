@@ -36,6 +36,9 @@ func Init(seeds []string) {
 			fmt.Println("cassandra", err, ". Retring after 5sec...")
 			time.Sleep(5 * time.Second)
 		}
+
+		ready = true
+		readyLock.Unlock()
 	}()
 }
 
