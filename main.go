@@ -14,13 +14,12 @@ const (
 )
 
 var (
-	readyLock *sync.Mutex
+	readyLock = &sync.Mutex{}
 	ready     bool
 	session   *gocql.Session
 )
 
 func Init(seeds []string) {
-	readyLock = &sync.Mutex{}
 	go func() {
 		readyLock.Lock()
 
