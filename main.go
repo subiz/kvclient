@@ -14,9 +14,10 @@ const (
 )
 
 var (
-	readyLock = &sync.Mutex{}
-	ready     bool
-	session   *gocql.Session
+	readyLock   = &sync.Mutex{}
+	ready       bool
+	session     *gocql.Session
+	asiasession *gocql.Session
 )
 
 func Init(seeds []string) {
@@ -30,6 +31,17 @@ func Init(seeds []string) {
 		var err error
 		for {
 			if session, err = cluster.CreateSession(); err == nil {
+				break
+			}
+			fmt.Println("cassandra", err, ". Retring after 5sec...")
+			time.Sleep(5 * time.Second)
+		}
+
+		cluster = gocql.NewCluster("cas-0")
+		cluster.Timeout = 10 * time.Second
+		cluster.Keyspace = keyspace
+		for {
+			if asiasession, err = cluster.CreateSession(); err == nil {
 				break
 			}
 			fmt.Println("cassandra", err, ". Retring after 5sec...")
@@ -86,6 +98,12 @@ func Set(scope, key, value string) error {
 	if err != nil {
 		return errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
 	}
+
+	err := asiasession.Query(`INSERT INTO `+tblKV+`(k,v) VALUES(?,?) USING TTL 5184000`, key, value).Exec()
+	if err != nil {
+		return errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
+	}
+
 	return nil
 }
 
