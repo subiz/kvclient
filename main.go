@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-const (
-	tblKV    = "kv2"
-	keyspace = "kvkvs"
-)
-
 var (
 	readyLock = &sync.Mutex{}
 	ready     bool
@@ -24,9 +19,9 @@ func Init(seeds []string) {
 		readyLock.Lock()
 
 		// connect to cassandra cluster
-		cluster := gocql.NewCluster("cas-0")
+		cluster := gocql.NewCluster("db-0")
 		cluster.Timeout = 10 * time.Second
-		cluster.Keyspace = keyspace
+		cluster.Keyspace = "kv"
 		var err error
 		for {
 			if session, err = cluster.CreateSession(); err == nil {
@@ -61,7 +56,7 @@ func Get(scope, key string) (string, bool, error) {
 	waitUntilReady()
 	key = scope + "@" + key
 	var val string
-	err := session.Query(`SELECT v FROM `+tblKV+` WHERE k=?`, key).Scan(&val)
+	err := session.Query(`SELECT v FROM kv WHERE k=?`, key).Scan(&val)
 	if err != nil && err.Error() == gocql.ErrNotFound.Error() {
 		return "", false, nil
 	}
@@ -82,7 +77,7 @@ func Set(scope, key, value string) error {
 	waitUntilReady()
 	key = scope + "@" + key
 	// ttl 60 days
-	err := session.Query(`INSERT INTO `+tblKV+`(k,v) VALUES(?,?) USING TTL 5184000`, key, value).Exec()
+	err := session.Query(`INSERT INTO kv(k,v) VALUES(?,?) USING TTL 5184000`, key, value).Exec()
 	if err != nil {
 		return errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
 	}
@@ -97,7 +92,7 @@ func Set(scope, key, value string) error {
 func Del(scope, key string) error {
 	waitUntilReady()
 	key = scope + "@" + key
-	err := session.Query(`DELETE FROM `+tblKV+` WHERE k=?`, key).Exec()
+	err := session.Query(`DELETE FROM kv WHERE k=?`, key).Exec()
 	if err != nil {
 		return errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
 	}
