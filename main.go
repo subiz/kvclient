@@ -2,10 +2,11 @@ package kvclient
 
 import (
 	"fmt"
-	"github.com/gocql/gocql"
-	"github.com/subiz/errors"
 	"sync"
 	"time"
+
+	"github.com/gocql/gocql"
+	"github.com/subiz/header"
 )
 
 var (
@@ -62,7 +63,7 @@ func Get(scope, key string) (string, bool, error) {
 	}
 
 	if err != nil {
-		return "", false, errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
+		return "", false, header.E500(err, header.E_database_error, "unable to read key %s", key)
 	}
 
 	return val, true, nil
@@ -79,7 +80,7 @@ func Set(scope, key, value string) error {
 	// ttl 60 days
 	err := session.Query(`INSERT INTO kv(k,v) VALUES(?,?) USING TTL 5184000`, key, value).Exec()
 	if err != nil {
-		return errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
+		return header.E500(err, header.E_database_error, "unable to read key %s", key)
 	}
 
 	return nil
@@ -94,7 +95,7 @@ func Del(scope, key string) error {
 	key = scope + "@" + key
 	err := session.Query(`DELETE FROM kv WHERE k=?`, key).Exec()
 	if err != nil {
-		return errors.Wrap(err, 500, errors.E_database_error, "unable to read key %s", key)
+		return header.E500(err, header.E_database_error, "unable to read key %s", key)
 	}
 	return nil
 }
